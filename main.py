@@ -9,7 +9,7 @@ from six.moves import cPickle
 import sys
 
 # hyper parameters
-EPISODES = 1000  
+EPISODES = 3000  
 GAMMA = 0.95  
 LR = 0.0005  
 batch_size = 128  
@@ -74,7 +74,9 @@ LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
     
 step = 0
 histroy = {}
-for episode in range(1000):
+total = 0
+_max = 0
+for episode in range(EPISODES):
     state = env.reset()
     env._max_episode_steps = sys.maxsize
     score = 0
@@ -86,6 +88,11 @@ for episode in range(1000):
         memory.push((state, action, next_state, reward, done))
         state = next_state
         if step % 50 == 0:
+            if total > _max:
+                _max = total
+                print ("save best network at episode {}".format(episode))
+                torch.save(dqn.state_dict(), "dqn_best.pth")
+            total = 0
             for i in range(50):
                 if len(memory) >= batch_size:
                     transitions = memory.sample(batch_size)
@@ -101,12 +108,13 @@ for episode in range(1000):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-
+            
         if done:
             print("Episode {}: score {} ".format(episode,score+1))
             break
+    total += score
     histroy[episode] = score
-    with open('history2.pkl', 'wb') as f:
+    with open('history_log2.pkl', 'wb') as f:
         cPickle.dump(histroy, f)
-    torch.save(dqn.state_dict(), "dqn2.pth")
+    torch.save(dqn.state_dict(), "dqn_episode.pth")
 
