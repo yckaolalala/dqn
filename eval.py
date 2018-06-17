@@ -43,7 +43,7 @@ use_cuda = torch.cuda.is_available()
 
 env = gym.make('CartPole-v0')
 dqn = DQN()
-dqn.load_state_dict(torch.load("dqn1.pth")) 
+dqn.load_state_dict(torch.load("test.pth")) 
 if use_cuda:
     print ("use cuda")
     dqn.cuda()
@@ -52,13 +52,19 @@ dqn.eval()
 FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
 
+def epsilon_greedy(state):
+    sample = random.random()
+    if sample > 0.1:
+        return dqn(state).detach().data.max(1)[1].view(1,1)
 
+    else:
+        return LongTensor([[random.randrange(2)]])
 
 print ("Start test")
 total = 0
 for episode in range(100):
     state = env.reset()
-    env._max_episode_steps = sys.maxsize
+    env._max_episode_steps = 100000
     score = 0
     while True:
         action = dqn(FloatTensor([state])).data.max(1)[1].view(1,1)
@@ -70,5 +76,6 @@ for episode in range(100):
         if done:
             total += score
             break
+    print ("episode {}: score {}".format(episode,score))
 
 print ("Average reward: {}".format(total/100))
